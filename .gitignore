@@ -1,0 +1,16 @@
+# Build outputs
+/bin/
+/obj/
+
+# IDE metadata
+/.vs/
+/.config/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Local database files and logs
+*.mdf
+*.ldf
+*.log
