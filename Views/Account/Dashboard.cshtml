@@ -1,0 +1,229 @@
+@model EtudiantReservationDashboardViewModel
+
+@{
+    ViewData["Title"] = "Tableau de bord";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0"><i class="bx bx-grid-alt me-2"></i>Tableau de bord etudiant</h4>
+    <a asp-controller="Livres" asp-action="Index" class="btn btn-outline-primary btn-sm">Reserver un livre</a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="small text-muted">CIN</div>
+                <div class="fw-semibold">@Model.Etudiant.Cin</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">Nom complet</div>
+                <div class="fw-semibold">@Model.Etudiant.Nom @Model.Etudiant.Prenom</div>
+            </div>
+            <div class="col-md-4">
+                <div class="small text-muted">Filiere / Niveau</div>
+                <div class="fw-semibold">@Model.Etudiant.Filiere - @Model.Etudiant.Niveau</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-2 col-6">
+        <div class="card text-bg-dark h-100">
+            <div class="card-body">
+                <div class="small">Total</div>
+                <div class="fs-4 fw-bold">@Model.Stats.Total</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="card border-danger h-100">
+            <div class="card-body">
+                <div class="small text-muted">Actives</div>
+                <div class="fs-4 fw-bold text-danger">@Model.Stats.Active</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2 col-6">
+        <div class="card border-warning h-100">
+            <div class="card-body">
+                <div class="small text-muted">A venir</div>
+                <div class="fs-4 fw-bold text-warning">@Model.Stats.Upcoming</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="card border-success h-100">
+            <div class="card-body">
+                <div class="small text-muted">Retournees</div>
+                <div class="fs-4 fw-bold text-success">@Model.Stats.Returned</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-12">
+        <div class="card border-secondary h-100">
+            <div class="card-body">
+                <div class="small text-muted">Annulees</div>
+                <div class="fs-4 fw-bold text-secondary">@Model.Stats.Cancelled</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h6 class="mb-0">Alertes</h6>
+    </div>
+    <div class="card-body">
+        @if (!Model.Alerts.Any())
+        {
+            <div class="alert alert-success mb-0">Aucune alerte pour le moment.</div>
+        }
+        else
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var alert in Model.Alerts)
+                {
+                    var alertCssClass = alert.Level switch
+                    {
+                        EtudiantDashboardAlertLevel.Danger => "list-group-item-danger",
+                        EtudiantDashboardAlertLevel.Warning => "list-group-item-warning",
+                        _ => "list-group-item-info"
+                    };
+
+                    <a asp-controller="Livres" asp-action="Details" asp-route-id="@alert.Numinventaire" class="list-group-item @alertCssClass list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-semibold">@alert.Titre</div>
+                            <div class="small">@alert.Message</div>
+                        </div>
+                        <span class="small fw-semibold">@alert.Date.ToString("yyyy-MM-dd")</span>
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <h6 class="mb-0">Reservations en cours</h6>
+    </div>
+    <div class="card-body">
+        @if (!Model.CurrentReservations.Any())
+        {
+            <div class="alert alert-info mb-0">Aucune reservation active ou a venir.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Livre</th>
+                            <th>Debut</th>
+                            <th>Fin</th>
+                            <th>Statut</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reservation in Model.CurrentReservations)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">
+                                        <a asp-controller="Livres" asp-action="Details" asp-route-id="@reservation.Numinventaire" class="text-decoration-none">
+                                            @reservation.Titre
+                                        </a>
+                                    </div>
+                                    <div class="small text-muted">@reservation.Numinventaire @(!string.IsNullOrWhiteSpace(reservation.Auteur) ? $"- {reservation.Auteur}" : string.Empty)</div>
+                                </td>
+                                <td>@reservation.StartDate.ToString("yyyy-MM-dd")</td>
+                                <td>@reservation.EndDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    @if (reservation.Status == ReservationStatus.Active)
+                                    {
+                                        <span class="badge bg-danger">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-warning text-dark">Reservee</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-controller="Livres" asp-action="Details" asp-route-id="@reservation.Numinventaire" class="btn btn-sm btn-outline-secondary">Details</a>
+                                    @if (reservation.CanCancel)
+                                    {
+                                        <form asp-controller="Livres" asp-action="CancelReservation" asp-route-id="@reservation.Numinventaire" asp-route-reservationId="@reservation.ReservationId" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmer l\'annulation de cette reservation ?');">Annuler</button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h6 class="mb-0">Historique des reservations</h6>
+    </div>
+    <div class="card-body">
+        @if (!Model.HistoryReservations.Any())
+        {
+            <div class="alert alert-light mb-0">Aucun historique de reservation.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped table-sm align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Livre</th>
+                            <th>Debut</th>
+                            <th>Fin</th>
+                            <th>Statut</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reservation in Model.HistoryReservations)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">
+                                        <a asp-controller="Livres" asp-action="Details" asp-route-id="@reservation.Numinventaire" class="text-decoration-none">
+                                            @reservation.Titre
+                                        </a>
+                                    </div>
+                                    <div class="small text-muted">@reservation.Numinventaire @(!string.IsNullOrWhiteSpace(reservation.Auteur) ? $"- {reservation.Auteur}" : string.Empty)</div>
+                                </td>
+                                <td>@reservation.StartDate.ToString("yyyy-MM-dd")</td>
+                                <td>@reservation.EndDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    @if (reservation.Status == ReservationStatus.Cancelled)
+                                    {
+                                        <span class="badge bg-secondary">Annulee</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Retournee</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <a asp-controller="Livres" asp-action="Details" asp-route-id="@reservation.Numinventaire" class="btn btn-sm btn-outline-secondary">Voir livre</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

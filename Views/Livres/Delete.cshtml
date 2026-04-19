@@ -1,0 +1,21 @@
+@model Livre
+
+@{
+    ViewData["Title"] = "Supprimer livre";
+}
+
+<div class="card border-danger">
+    <div class="card-header">
+        <h5 class="mb-0 text-danger"><i class="bx bx-trash me-2"></i>Confirmer la suppression</h5>
+    </div>
+    <div class="card-body">
+        <p>Voulez-vous vraiment supprimer le livre <strong>@Model.Titre</strong> (@Model.Numinventaire) ?</p>
+
+        <form asp-action="Delete" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Numinventaire" name="id" />
+            <button type="submit" class="btn btn-danger">Supprimer</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Annuler</a>
+        </form>
+    </div>
+</div>

@@ -4,6 +4,7 @@ using Bibliotheque.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bibliotheque.Migrations
 {
     [DbContext(typeof(BibliothequeContext))]
-    partial class BibliothequeContextModelSnapshot : ModelSnapshot
+    [Migration("20260419165240_CreateAvisTable")]
+    partial class CreateAvisTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -32,11 +35,13 @@ namespace Bibliotheque.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
                     b.Property<string>("Cin")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("cin");
 
                     b.Property<string>("Commentaire")
+                        .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)")
@@ -52,6 +57,7 @@ namespace Bibliotheque.Migrations
                         .HasColumnName("note");
 
                     b.Property<string>("Numinv")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("numinv");
@@ -68,8 +74,7 @@ namespace Bibliotheque.Migrations
                     b.HasIndex(new[] { "Cin" }, "avis_cin_foreign");
 
                     b.HasIndex(new[] { "Cin", "Numinv" }, "avis_cin_numinv_unique")
-                        .IsUnique()
-                        .HasFilter("[cin] IS NOT NULL AND [numinv] IS NOT NULL");
+                        .IsUnique();
 
                     b.HasIndex(new[] { "Numinv" }, "avis_numinv_foreign");
 
@@ -622,12 +627,14 @@ namespace Bibliotheque.Migrations
                         .WithMany("Avis")
                         .HasForeignKey("Cin")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
                         .HasConstraintName("avis$avis_cin_foreign");
 
                     b.HasOne("Bibliotheque.Models.Livre", "Livre")
                         .WithMany("Avis")
                         .HasForeignKey("Numinv")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
                         .HasConstraintName("avis$avis_numinv_foreign");
 
                     b.Navigation("Etudiant");

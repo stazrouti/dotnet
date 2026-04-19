@@ -36,4 +36,6 @@ public partial class Etudiant
     public virtual ICollection<Emprunt> Emprunts { get; set; } = new List<Emprunt>();
 
     public virtual ICollection<Visite> Visites { get; set; } = new List<Visite>();
+
+    public virtual ICollection<Avis> Avis { get; set; } = new List<Avis>();
 }

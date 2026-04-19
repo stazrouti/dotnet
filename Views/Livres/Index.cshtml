@@ -1,0 +1,111 @@
+@model LivreIndexViewModel
+
+@{
+    ViewData["Title"] = "Gestion des livres";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bx bx-book me-2"></i>Livres</h5>
+        @if (User.IsInRole("Admin"))
+        {
+            <a asp-action="Create" class="btn btn-primary btn-sm"><i class="bx bx-plus me-1"></i>Nouveau livre</a>
+        }
+    </div>
+    <div class="card-body">
+        @if (TempData["Success"] is string success)
+        {
+            <div class="alert alert-success" role="alert">@success</div>
+        }
+
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-8">
+                <input name="search" value="@Model.Search" class="form-control" placeholder="Rechercher par inventaire, titre, auteur, ISBN" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-outline-primary w-100">Filtrer</button>
+            </div>
+            <div class="col-md-2">
+                <a asp-action="Index" class="btn btn-outline-secondary w-100">Reset</a>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Inventaire</th>
+                        <th>Titre</th>
+                        <th>Auteur</th>
+                        <th>ISBN</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (!Model.Livres.Any())
+                {
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">Aucun livre trouve.</td>
+                    </tr>
+                }
+                else
+                {
+                    @foreach (var livre in Model.Livres)
+                    {
+                        <tr>
+                            <td>@livre.Numinventaire</td>
+                            <td>@livre.Titre</td>
+                            <td>@livre.Auteur</td>
+                            <td>@livre.Isbn</td>
+                            <td class="text-end">
+                                <a asp-action="Details" asp-route-id="@livre.Numinventaire" class="btn btn-sm btn-outline-info">Details</a>
+                                @if (User.IsInRole("User"))
+                                {
+                                    <a asp-action="Reserve" asp-route-id="@livre.Numinventaire" class="btn btn-sm btn-success">Reserver</a>
+                                }
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-action="Edit" asp-route-id="@livre.Numinventaire" class="btn btn-sm btn-outline-primary">Modifier</a>
+                                    <a asp-action="Delete" asp-route-id="@livre.Numinventaire" class="btn btn-sm btn-outline-danger">Supprimer</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @if (Model.TotalItems > 0)
+        {
+            var startItem = ((Model.CurrentPage - 1) * Model.PageSize) + 1;
+            var endItem = Math.Min(Model.CurrentPage * Model.PageSize, Model.TotalItems);
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <small class="text-muted">Affichage @startItem-@endItem sur @Model.TotalItems livres</small>
+
+                @if (Model.TotalPages > 1)
+                {
+                    <nav aria-label="Pagination livres">
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(Model.HasPreviousPage ? string.Empty : "disabled")">
+                                <a class="page-link" asp-action="Index" asp-route-search="@Model.Search" asp-route-page="@(Model.CurrentPage - 1)">Precedent</a>
+                            </li>
+
+                            @for (var i = 1; i <= Model.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : string.Empty)">
+                                    <a class="page-link" asp-action="Index" asp-route-search="@Model.Search" asp-route-page="@i">@i</a>
+                                </li>
+                            }
+
+                            <li class="page-item @(Model.HasNextPage ? string.Empty : "disabled")">
+                                <a class="page-link" asp-action="Index" asp-route-search="@Model.Search" asp-route-page="@(Model.CurrentPage + 1)">Suivant</a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
+            </div>
+        }
+    </div>
+</div>

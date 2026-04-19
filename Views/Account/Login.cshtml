@@ -75,34 +75,52 @@
                         <h4 class="mb-2">Bienvenue dans la bibliothèque électronique de l'école SupMTI</h4>
                         <p class="mb-4">Veuillez-vous se connecter pour accéder à votre Espace</p>
 
-                        <form id="formAuthentication" class="mb-3" method="POST">
+                        @if (TempData["Success"] is string success)
+                        {
+                            <div class="alert alert-success" role="alert">@success</div>
+                        }
+
+                        <form id="formAuthentication" asp-action="Login" method="post" class="mb-3">
+                            @Html.AntiForgeryToken()
+                            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
                             <div class="mb-3">
                                 <label asp-for="Email" class="form-label">Email</label>
-                                <input type="text"
+                                <input asp-for="Email"
+                                       type="email"
                                        class="form-control"
-                                       id="email"
-                                       name="Email"
                                        placeholder="Email"
                                        autofocus />
+                                <span asp-validation-for="Email" class="text-danger"></span>
                             </div>
                             <div class="mb-3 form-password-toggle">
                                 <div class="d-flex justify-content-between">
                                     <label class="form-label" asp-for="Password">Mot de passe</label>
                                 </div>
                                 <div class="input-group input-group-merge">
-                                    <input type="password"
-                                           id="password"
+                                    <input asp-for="Password"
+                                           type="password"
                                            class="form-control"
-                                           name="Password"
                                            placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
                                            aria-describedby="Password" />
                                     <span class="input-group-text cursor-pointer"><i class="bx bx-hide"></i></span>
+                                </div>
+                                <span asp-validation-for="Password" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input asp-for="RememberMe" class="form-check-input" />
+                                    <label asp-for="RememberMe" class="form-check-label">Se souvenir de moi</label>
                                 </div>
                             </div>
                             
                             <div class="mb-3">
                                 <button class="btn btn-primary d-grid w-100" type="submit">Connexion</button>
                             </div>
+
+                            <p class="text-center mb-0">
+                                <a asp-action="Register">Creer un nouveau compte</a>
+                            </p>
                         </form>
                     </div>
                 </div>
@@ -126,6 +144,7 @@
     <!-- Page JS -->
     <!-- Place this tag in your head or just before your close body tag. -->
     <script async defer src="https://buttons.github.io/buttons.js"></script>
+    <partial name="_ValidationScriptsPartial" />
 </body>
 </html>
 

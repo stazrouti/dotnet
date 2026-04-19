@@ -46,6 +46,10 @@
     <script src="~/assets/js/config.js"></script>
 </head>
 <body>
+    @{
+        var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    }
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
             <!-- Menu -->
@@ -67,12 +71,49 @@
 
                 <ul class="menu-inner py-1">
                     <!-- Dashboard -->
-                    <li class="menu-item active">
+                    <li class="menu-item @(currentController == "Home" ? "active" : string.Empty)">
                         <a class="menu-link" asp-controller="Home" asp-action="Index">
                             <i class="menu-icon tf-icons bx bx-home-circle"></i>
                             <div>Tableau de bord</div>
                         </a>
                     </li>
+
+                    <li class="menu-item @(currentController == "Livres" ? "active" : string.Empty)">
+                        <a class="menu-link" asp-controller="Livres" asp-action="Index">
+                            <i class="menu-icon tf-icons bx bx-book"></i>
+                            <div>Livres</div>
+                        </a>
+                    </li>
+
+                    @if (User.IsInRole("User"))
+                    {
+                        <li class="menu-item @(currentController == "Account" && currentAction == "Dashboard" ? "active" : string.Empty)">
+                            <a class="menu-link" asp-controller="Account" asp-action="Dashboard">
+                                <i class="menu-icon tf-icons bx bx-grid-alt"></i>
+                                <div>Mes reservations</div>
+                            </a>
+                        </li>
+                    }
+
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li class="menu-item @(currentController == "Etudiants" ? "active" : string.Empty)">
+                            <a class="menu-link" asp-controller="Etudiants" asp-action="Index">
+                                <i class="menu-icon tf-icons bx bx-group"></i>
+                                <div>Etudiants</div>
+                            </a>
+                        </li>
+                    }
+
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <li class="menu-item @(currentController == "Admin" ? "active" : string.Empty)">
+                            <a class="menu-link" asp-controller="Admin" asp-action="Users">
+                                <i class="menu-icon tf-icons bx bx-shield-quarter"></i>
+                                <div>Utilisateurs</div>
+                            </a>
+                        </li>
+                    }
 
                     
                 </ul>
@@ -100,19 +141,7 @@
                         <!-- /Search -->
 
                         <ul class="navbar-nav flex-row align-items-center ms-auto">
-                            <!-- Place this tag where you want the button to render. -->
-                            <li class="nav-item lh-1 me-3">
-                                
-                            </li>
-
-                            <!-- User -->
-                            <li class="nav-item navbar-dropdown dropdown-user dropdown">
-                                <a class="menu-link" asp-controller="Account" asp-action="Logout">
-                                    Se déconnecter
-                                </a>
-                                
-                            </li>
-                            <!--/ User -->
+                            @await Html.PartialAsync("_LoginPartial")
                         </ul>
                     </div>
                 </nav>
