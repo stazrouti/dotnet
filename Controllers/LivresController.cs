@@ -22,13 +22,31 @@ public class LivresController : Controller
 
     [Authorize]
     [HttpGet]
-    public async Task<IActionResult> Index(string? search)
+    public async Task<IActionResult> Index(string? search, int page = 1)
     {
-        var livres = await _livreService.GetAllAsync(search);
+        const int pageSize = 10;
+        if (page < 1)
+        {
+            page = 1;
+        }
+
+        var (livres, totalItems) = await _livreService.GetPagedAsync(search, page, pageSize);
+        var totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)pageSize));
+
+        if (page > totalPages)
+        {
+            page = totalPages;
+            (livres, totalItems) = await _livreService.GetPagedAsync(search, page, pageSize);
+        }
+
         var model = new LivreIndexViewModel
         {
             Search = search,
-            Livres = livres
+            Livres = livres,
+            CurrentPage = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalPages
         };
 
         return View(model);

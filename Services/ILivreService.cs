@@ -5,6 +5,7 @@ namespace Bibliotheque.Services;
 public interface ILivreService
 {
     Task<List<Livre>> GetAllAsync(string? searchTerm = null);
+    Task<(List<Livre> Livres, int TotalItems)> GetPagedAsync(string? searchTerm, int page, int pageSize);
     Task<Livre?> GetByIdAsync(string numInventaire);
     Task<bool> ExistsAsync(string numInventaire);
     Task CreateAsync(Livre livre);

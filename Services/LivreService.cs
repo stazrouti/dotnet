@@ -32,6 +32,32 @@ public class LivreService : ILivreService
             .ToListAsync();
     }
 
+    public async Task<(List<Livre> Livres, int TotalItems)> GetPagedAsync(string? searchTerm, int page, int pageSize)
+    {
+        var query = _context.Livres.AsNoTracking().AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            var term = searchTerm.Trim();
+            query = query.Where(l =>
+                (l.Numinventaire != null && l.Numinventaire.Contains(term)) ||
+                (l.Titre != null && l.Titre.Contains(term)) ||
+                (l.Auteur != null && l.Auteur.Contains(term)) ||
+                (l.Isbn != null && l.Isbn.Contains(term)));
+        }
+
+        var totalItems = await query.CountAsync();
+
+        var livres = await query
+            .OrderBy(l => l.Titre)
+            .ThenBy(l => l.Numinventaire)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (livres, totalItems);
+    }
+
     public async Task<Livre?> GetByIdAsync(string numInventaire)
     {
         return await _context.Livres
