@@ -51,6 +51,20 @@ public class LivresController : Controller
 
         var today = DateTime.UtcNow.Date;
         var reservations = await _livreService.GetReservationsForBookAsync(livre.Numinventaire, today.AddDays(-30), today.AddDays(180));
+        
+        string? currentUserCin = null;
+        if (User.IsInRole("User"))
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+            if (etudiant is not null)
+            {
+                currentUserCin = etudiant.Cin;
+            }
+        }
+
+        var reviews = await _livreService.GetReviewsForBookAsync(livre.Numinventaire, currentUserCin);
+        
         var detailsModel = new LivreDetailsViewModel
         {
             Livre = livre,
@@ -62,7 +76,8 @@ public class LivresController : Controller
                 EndDate = r.Dateretour?.Date ?? today,
                 Status = GetReservationStatus(r, today),
                 CanCancel = false
-            }).ToList()
+            }).ToList(),
+            Reviews = reviews
         };
 
         if (User.IsInRole("User"))
@@ -401,6 +416,110 @@ public class LivresController : Controller
 
         TempData["Success"] = "Livre supprime avec succes.";
         return RedirectToAction(nameof(Index));
+    }
+
+    // Review/Rating actions
+    [Authorize(Roles = "User")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateReview(string id, int note, string? commentaire)
+    {
+        if (string.IsNullOrWhiteSpace(id) || note < 1 || note > 5)
+        {
+            return BadRequest();
+        }
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+
+        if (etudiant is null)
+        {
+            TempData["Error"] = "Vous devez avoir un profil etudiant verifie pour evaluer un livre.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        try
+        {
+            await _livreService.CreateReviewAsync(etudiant.Cin, id, note, commentaire);
+            TempData["Success"] = "Evaluation creee avec succes.";
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["Error"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateReview(string id, decimal reviewId, int note, string? commentaire)
+    {
+        if (string.IsNullOrWhiteSpace(id) || note < 1 || note > 5)
+        {
+            return BadRequest();
+        }
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+
+        if (etudiant is null)
+        {
+            TempData["Error"] = "Vous devez avoir un profil etudiant verifie.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        try
+        {
+            var updated = await _livreService.UpdateReviewAsync(reviewId, etudiant.Cin, note, commentaire);
+            if (!updated)
+            {
+                TempData["Error"] = "Evaluation introuvable ou non autorisee.";
+            }
+            else
+            {
+                TempData["Success"] = "Evaluation mise a jour avec succes.";
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            TempData["Error"] = ex.Message;
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteReview(string id, decimal reviewId)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return BadRequest();
+        }
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+
+        if (etudiant is null)
+        {
+            TempData["Error"] = "Vous devez avoir un profil etudiant verifie.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var deleted = await _livreService.DeleteReviewAsync(reviewId, etudiant.Cin);
+        if (!deleted)
+        {
+            TempData["Error"] = "Evaluation introuvable ou non autorisee.";
+        }
+        else
+        {
+            TempData["Success"] = "Evaluation supprimee avec succes.";
+        }
+
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     private static ReservationStatus GetReservationStatus(Emprunt reservation, DateTime today)

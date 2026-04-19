@@ -26,6 +26,7 @@ public class LivreDetailsViewModel
     public string? ReservationBlockedReason { get; set; }
     public int CurrentReservationCount { get; set; }
     public int MaxReservationCount { get; set; } = 3;
+    public BookReviewsViewModel Reviews { get; set; } = new();
 }
 
 public class LivreReserveViewModel

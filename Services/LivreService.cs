@@ -194,4 +194,206 @@ public class LivreService : ILivreService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    // Review/Rating methods
+    public async Task<bool> CanReviewBookAsync(string cin, string numInventaire)
+    {
+        var hasReturnedReservation = await _context.Emprunts.AnyAsync(e =>
+            e.Cin == cin &&
+            e.Numinv == numInventaire &&
+            e.Estretour.HasValue &&
+            e.Estretour.Value >= e.Dateemprunt);
+
+        return hasReturnedReservation;
+    }
+
+    public async Task CreateReviewAsync(string cin, string numInventaire, int note, string? commentaire)
+    {
+        if (note < 1 || note > 5)
+        {
+            throw new InvalidOperationException("La note doit etre entre 1 et 5.");
+        }
+
+        var canReview = await CanReviewBookAsync(cin, numInventaire);
+        if (!canReview)
+        {
+            throw new InvalidOperationException("Vous ne pouvez pas evaluer ce livre. Vous devez d'abord l'emprunter et le retourner.");
+        }
+
+        var existingReview = await _context.Avis.FirstOrDefaultAsync(a =>
+            a.Cin == cin && a.Numinv == numInventaire);
+        if (existingReview is not null)
+        {
+            throw new InvalidOperationException("Vous avez deja evalue ce livre.");
+        }
+
+        var review = new Avis
+        {
+            Cin = cin,
+            Numinv = numInventaire,
+            Note = note,
+            Commentaire = commentaire,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = null
+        };
+
+        _context.Avis.Add(review);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<BookReviewsViewModel> GetReviewsForBookAsync(string numInventaire, string? currentUserCin = null)
+    {
+        var livre = await _context.Livres
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Numinventaire == numInventaire);
+
+        if (livre is null)
+        {
+            return new BookReviewsViewModel
+            {
+                BookNumInv = numInventaire,
+                BookTitle = "Livre introuvable",
+                Reviews = new(),
+                TotalReviews = 0,
+                CanCurrentUserReview = false
+            };
+        }
+
+        var reviews = await _context.Avis
+            .Where(a => a.Numinv == numInventaire)
+            .Include(a => a.Etudiant)
+            .OrderByDescending(a => a.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
+
+        var reviewVMs = new List<AvisViewModel>();
+        foreach (var a in reviews)
+        {
+            // Get return status: check if student has a returned reservation for this book
+            var returnedReservation = await _context.Emprunts
+                .Where(e => e.Cin == a.Cin && 
+                            e.Numinv == numInventaire && 
+                            e.Estretour.HasValue)
+                .OrderByDescending(e => e.Estretour)
+                .FirstOrDefaultAsync();
+
+            var vm = new AvisViewModel
+            {
+                Id = a.Id,
+                Note = a.Note,
+                Commentaire = a.Commentaire,
+                CreatedAt = a.CreatedAt,
+                UpdatedAt = a.UpdatedAt,
+                AuthorCin = a.Cin,
+                AuthorName = GetAnonymousName(a.Etudiant?.Prenom, a.Etudiant?.Nom),
+                BookReturned = returnedReservation != null,
+                BookReturnDate = returnedReservation?.Estretour
+            };
+            reviewVMs.Add(vm);
+        }
+
+        var averageRating = reviews.Count > 0
+            ? (decimal)reviews.Average(a => a.Note)
+            : (decimal?)null;
+
+        var currentUserReview = currentUserCin != null
+            ? reviewVMs.FirstOrDefault(r => r.AuthorCin == currentUserCin)
+            : null;
+
+        var canCurrentUserReview = currentUserCin != null
+            ? await CanReviewBookAsync(currentUserCin, numInventaire)
+            : false;
+
+        return new BookReviewsViewModel
+        {
+            BookNumInv = numInventaire,
+            BookTitle = livre.Titre,
+            AverageRating = averageRating,
+            TotalReviews = reviews.Count,
+            Reviews = reviewVMs,
+            CanCurrentUserReview = canCurrentUserReview && currentUserReview is null,
+            CurrentUserExistingReview = currentUserReview
+        };
+    }
+
+    public async Task<AvisViewModel?> GetReviewByIdAsync(decimal reviewId)
+    {
+        var review = await _context.Avis
+            .Include(a => a.Etudiant)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(a => a.Id == reviewId);
+
+        if (review is null)
+        {
+            return null;
+        }
+
+        return new AvisViewModel
+        {
+            Id = review.Id,
+            Note = review.Note,
+            Commentaire = review.Commentaire,
+            CreatedAt = review.CreatedAt,
+            UpdatedAt = review.UpdatedAt,
+            AuthorCin = review.Cin,
+            AuthorName = GetAnonymousName(review.Etudiant?.Prenom, review.Etudiant?.Nom)
+        };
+    }
+
+    public async Task<bool> UpdateReviewAsync(decimal reviewId, string cin, int note, string? commentaire)
+    {
+        if (note < 1 || note > 5)
+        {
+            throw new InvalidOperationException("La note doit etre entre 1 et 5.");
+        }
+
+        var review = await _context.Avis.FirstOrDefaultAsync(a => a.Id == reviewId);
+        if (review is null)
+        {
+            return false;
+        }
+
+        if (!string.Equals(review.Cin, cin, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        review.Note = note;
+        review.Commentaire = commentaire;
+        review.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    public async Task<bool> DeleteReviewAsync(decimal reviewId, string cin)
+    {
+        var review = await _context.Avis.FirstOrDefaultAsync(a => a.Id == reviewId);
+        if (review is null)
+        {
+            return false;
+        }
+
+        if (!string.Equals(review.Cin, cin, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        _context.Avis.Remove(review);
+        await _context.SaveChangesAsync();
+        return true;
+    }
+
+    private static string GetAnonymousName(string? prenom, string? nom)
+    {
+        if (string.IsNullOrWhiteSpace(prenom) && string.IsNullOrWhiteSpace(nom))
+        {
+            return "Anonyme";
+        }
+
+        var firstName = string.IsNullOrWhiteSpace(prenom) ? "A" : prenom.Substring(0, 1).ToUpper();
+        var lastNameInitial = string.IsNullOrWhiteSpace(nom) ? "." : nom.Substring(0, 1).ToUpper() + ".";
+
+        return $"{firstName} {lastNameInitial}";
+    }
 }
