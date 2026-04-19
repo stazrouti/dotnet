@@ -185,4 +185,46 @@ public class EtudiantService : IEtudiantService
             .AsNoTracking()
             .ToListAsync();
     }
+
+    public async Task<Etudiant?> GetVerifiedEtudiantForUserAsync(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+        {
+            return null;
+        }
+
+        var normalizedEmail = email.Trim().ToLower();
+
+        var etudiant = await _context.Etudiants
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Email != null && e.Email.ToLower() == normalizedEmail);
+
+        if (etudiant is null)
+        {
+            return null;
+        }
+
+        if (string.IsNullOrWhiteSpace(etudiant.Cin) ||
+            string.IsNullOrWhiteSpace(etudiant.Nom) ||
+            string.IsNullOrWhiteSpace(etudiant.Prenom) ||
+            string.IsNullOrWhiteSpace(etudiant.Email) ||
+            string.IsNullOrWhiteSpace(etudiant.Niveau) ||
+            string.IsNullOrWhiteSpace(etudiant.Filiere))
+        {
+            return null;
+        }
+
+        return etudiant;
+    }
+
+    public async Task<int> CountCurrentReservationsAsync(string cin)
+    {
+        var today = DateTime.UtcNow.Date;
+
+        return await _context.Emprunts
+            .Where(e => e.Cin == cin &&
+                        !e.Estretour.HasValue &&
+                        (!e.Dateretour.HasValue || e.Dateretour.Value.Date >= today))
+            .CountAsync();
+    }
 }

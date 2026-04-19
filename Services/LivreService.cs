@@ -89,4 +89,83 @@ public class LivreService : ILivreService
         await _context.SaveChangesAsync();
         return true;
     }
+
+    public async Task<List<Emprunt>> GetReservationsForBookAsync(string numInventaire, DateTime fromDate, DateTime toDate)
+    {
+        var from = fromDate.Date;
+        var to = toDate.Date;
+
+        return await _context.Emprunts
+            .Where(e => e.Numinv == numInventaire &&
+                        !e.Estretour.HasValue &&
+                        e.Dateemprunt.HasValue &&
+                        (e.Dateemprunt.Value.Date <= to) &&
+                        (!e.Dateretour.HasValue || e.Dateretour.Value.Date >= from))
+            .OrderBy(e => e.Dateemprunt)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+    public async Task<bool> IsBookAvailableAsync(string numInventaire, DateTime startDate, DateTime endDate)
+    {
+        var start = startDate.Date;
+        var end = endDate.Date;
+
+        var hasConflict = await _context.Emprunts.AnyAsync(e =>
+            e.Numinv == numInventaire &&
+            !e.Estretour.HasValue &&
+            e.Dateemprunt.HasValue &&
+            e.Dateemprunt.Value.Date <= end &&
+            (!e.Dateretour.HasValue || e.Dateretour.Value.Date >= start));
+
+        return !hasConflict;
+    }
+
+    public async Task CreateReservationAsync(string cin, string numInventaire, DateTime startDate, DateTime endDate)
+    {
+        var reservation = new Emprunt
+        {
+            Cin = cin,
+            Numinv = numInventaire,
+            Dateemprunt = startDate.Date,
+            Dateretour = endDate.Date,
+            Estretour = null,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        _context.Emprunts.Add(reservation);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<Emprunt?> GetReservationByIdAsync(decimal reservationId)
+    {
+        return await _context.Emprunts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(e => e.Id == reservationId);
+    }
+
+    public async Task<bool> CancelReservationAsync(decimal reservationId, string cin)
+    {
+        var reservation = await _context.Emprunts.FirstOrDefaultAsync(e => e.Id == reservationId);
+        if (reservation is null)
+        {
+            return false;
+        }
+
+        if (!string.Equals(reservation.Cin, cin, StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (reservation.Estretour.HasValue)
+        {
+            return false;
+        }
+
+        reservation.Estretour = DateTime.UtcNow;
+        reservation.UpdatedAt = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
+        return true;
+    }
 }

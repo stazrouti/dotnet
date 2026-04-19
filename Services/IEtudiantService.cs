@@ -15,4 +15,6 @@ public interface IEtudiantService
     Task<bool> DeleteAsync(string cin);
     Task<IEnumerable<Emprunt>> GetActiveLoansAsync(string cin);
     Task<IEnumerable<Visite>> GetRecentVisitesAsync(string cin, int days = 30);
+    Task<Etudiant?> GetVerifiedEtudiantForUserAsync(string? email);
+    Task<int> CountCurrentReservationsAsync(string cin);
 }

@@ -59,6 +59,10 @@
                             <td>@livre.Isbn</td>
                             <td class="text-end">
                                 <a asp-action="Details" asp-route-id="@livre.Numinventaire" class="btn btn-sm btn-outline-info">Details</a>
+                                @if (User.IsInRole("User"))
+                                {
+                                    <a asp-action="Reserve" asp-route-id="@livre.Numinventaire" class="btn btn-sm btn-success">Reserver</a>
+                                }
                                 @if (User.IsInRole("Admin"))
                                 {
                                     <a asp-action="Edit" asp-route-id="@livre.Numinventaire" class="btn btn-sm btn-outline-primary">Modifier</a>

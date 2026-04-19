@@ -1,4 +1,4 @@
-@model Livre
+@model LivreDetailsViewModel
 
 @{
     ViewData["Title"] = "Details livre";
@@ -6,40 +6,135 @@
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bx bx-book-reader me-2"></i>@Model.Titre</h5>
+        <h5 class="mb-0"><i class="bx bx-book-reader me-2"></i>@Model.Livre.Titre</h5>
         <div>
             @if (User.IsInRole("Admin"))
             {
-                <a asp-action="Edit" asp-route-id="@Model.Numinventaire" class="btn btn-outline-primary btn-sm">Modifier</a>
+                <a asp-action="Edit" asp-route-id="@Model.Livre.Numinventaire" class="btn btn-outline-primary btn-sm">Modifier</a>
+            }
+            @if (User.IsInRole("User") && Model.CanReserve)
+            {
+                <a asp-action="Reserve" asp-route-id="@Model.Livre.Numinventaire" class="btn btn-success btn-sm">Reserver</a>
             }
             <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Retour</a>
         </div>
     </div>
     <div class="card-body">
+        @if (TempData["Success"] is string success)
+        {
+            <div class="alert alert-success" role="alert">@success</div>
+        }
+
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert alert-danger" role="alert">@error</div>
+        }
+
+        @if (User.IsInRole("User") && !Model.CanReserve && !string.IsNullOrWhiteSpace(Model.ReservationBlockedReason))
+        {
+            <div class="alert alert-warning" role="alert">
+                @Model.ReservationBlockedReason
+            </div>
+        }
+
         <dl class="row mb-0">
             <dt class="col-sm-3">Inventaire</dt>
-            <dd class="col-sm-9">@Model.Numinventaire</dd>
+            <dd class="col-sm-9">@Model.Livre.Numinventaire</dd>
 
             <dt class="col-sm-3">ISBN</dt>
-            <dd class="col-sm-9">@Model.Isbn</dd>
+            <dd class="col-sm-9">@Model.Livre.Isbn</dd>
 
             <dt class="col-sm-3">Auteur</dt>
-            <dd class="col-sm-9">@Model.Auteur</dd>
+            <dd class="col-sm-9">@Model.Livre.Auteur</dd>
 
             <dt class="col-sm-3">Editeur</dt>
-            <dd class="col-sm-9">@Model.Editeur</dd>
+            <dd class="col-sm-9">@Model.Livre.Editeur</dd>
 
             <dt class="col-sm-3">Date publication</dt>
-            <dd class="col-sm-9">@Model.Datepublication</dd>
+            <dd class="col-sm-9">@Model.Livre.Datepublication</dd>
 
             <dt class="col-sm-3">Date arrivage</dt>
-            <dd class="col-sm-9">@Model.Datearrivage</dd>
+            <dd class="col-sm-9">@Model.Livre.Datearrivage</dd>
 
             <dt class="col-sm-3">Cote</dt>
-            <dd class="col-sm-9">@Model.Cote</dd>
+            <dd class="col-sm-9">@Model.Livre.Cote</dd>
 
             <dt class="col-sm-3">Resume</dt>
-            <dd class="col-sm-9">@Model.Résumé</dd>
+            <dd class="col-sm-9">@Model.Livre.Résumé</dd>
         </dl>
+
+        <hr />
+
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0">Disponibilite et reservations</h6>
+            @if (User.IsInRole("User"))
+            {
+                <span class="badge bg-secondary">@Model.CurrentReservationCount / @Model.MaxReservationCount reservations</span>
+            }
+        </div>
+
+        @if (!Model.Reservations.Any())
+        {
+            <div class="alert alert-success mb-0" role="alert">
+                Aucun booking actif ou planifie. Le livre est disponible sur les prochains jours.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Debut</th>
+                            <th>Fin</th>
+                            <th>Statut</th>
+                            @if (User.IsInRole("User"))
+                            {
+                                <th class="text-end">Action</th>
+                            }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var reservation in Model.Reservations)
+                        {
+                            <tr>
+                                <td>@reservation.StartDate.ToString("yyyy-MM-dd")</td>
+                                <td>@reservation.EndDate.ToString("yyyy-MM-dd")</td>
+                                <td>
+                                    @if (reservation.Status == ReservationStatus.Active)
+                                    {
+                                        <span class="badge bg-danger">Active</span>
+                                    }
+                                    else if (reservation.Status == ReservationStatus.Cancelled)
+                                    {
+                                        <span class="badge bg-secondary">Annulee</span>
+                                    }
+                                    else if (reservation.Status == ReservationStatus.Reserved)
+                                    {
+                                        <span class="badge bg-warning text-dark">Reservee</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Retournee</span>
+                                    }
+                                </td>
+                                @if (User.IsInRole("User"))
+                                {
+                                    <td class="text-end">
+                                        @if (reservation.CanCancel)
+                                        {
+                                            <form asp-action="CancelReservation" asp-route-id="@Model.Livre.Numinventaire" asp-route-reservationId="@reservation.Id" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Confirmer l\'annulation de cette reservation ?');">Annuler</button>
+                                            </form>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
     </div>
 </div>

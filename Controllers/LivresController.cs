@@ -1,6 +1,7 @@
 using Bibliotheque.Models;
 using Bibliotheque.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Bibliotheque.Controllers;
@@ -8,10 +9,15 @@ namespace Bibliotheque.Controllers;
 public class LivresController : Controller
 {
     private readonly ILivreService _livreService;
+    private readonly IEtudiantService _etudiantService;
+    private readonly UserManager<User> _userManager;
+    private const int MaxReservations = 3;
 
-    public LivresController(ILivreService livreService)
+    public LivresController(ILivreService livreService, IEtudiantService etudiantService, UserManager<User> userManager)
     {
         _livreService = livreService;
+        _etudiantService = etudiantService;
+        _userManager = userManager;
     }
 
     [Authorize]
@@ -43,7 +49,211 @@ public class LivresController : Controller
             return NotFound();
         }
 
-        return View(livre);
+        var today = DateTime.UtcNow.Date;
+        var reservations = await _livreService.GetReservationsForBookAsync(livre.Numinventaire, today.AddDays(-30), today.AddDays(180));
+        var detailsModel = new LivreDetailsViewModel
+        {
+            Livre = livre,
+            Reservations = reservations.Select(r => new ReservationItemViewModel
+            {
+                Id = r.Id,
+                Cin = r.Cin,
+                StartDate = r.Dateemprunt?.Date ?? today,
+                EndDate = r.Dateretour?.Date ?? today,
+                Status = GetReservationStatus(r, today),
+                CanCancel = false
+            }).ToList()
+        };
+
+        if (User.IsInRole("User"))
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+
+            if (etudiant is null)
+            {
+                detailsModel.CanReserve = false;
+                detailsModel.ReservationBlockedReason = "La reservation est disponible seulement pour les comptes etudiants verifies avec un profil complet par l'administration.";
+            }
+            else
+            {
+                detailsModel.CurrentReservationCount = await _etudiantService.CountCurrentReservationsAsync(etudiant.Cin);
+                detailsModel.CanReserve = detailsModel.CurrentReservationCount < MaxReservations;
+
+                foreach (var reservation in detailsModel.Reservations)
+                {
+                    reservation.CanCancel = string.Equals(reservation.Cin, etudiant.Cin, StringComparison.OrdinalIgnoreCase)
+                        && reservation.Status != ReservationStatus.Cancelled;
+                }
+
+                if (!detailsModel.CanReserve)
+                {
+                    detailsModel.ReservationBlockedReason = $"Vous avez atteint la limite de {MaxReservations} reservations actives.";
+                }
+            }
+        }
+
+        return View(detailsModel);
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpGet]
+    public async Task<IActionResult> Reserve(string id)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return NotFound();
+        }
+
+        var livre = await _livreService.GetByIdAsync(id);
+        if (livre is null)
+        {
+            return NotFound();
+        }
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+
+        if (etudiant is null)
+        {
+            TempData["Error"] = "Reservation refusee. Votre compte doit etre lie a un profil etudiant verifie et complet.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var currentCount = await _etudiantService.CountCurrentReservationsAsync(etudiant.Cin);
+        if (currentCount >= MaxReservations)
+        {
+            TempData["Error"] = $"Reservation refusee. Vous avez deja {MaxReservations} reservations actives.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var today = DateTime.UtcNow.Date;
+        var reservations = await _livreService.GetReservationsForBookAsync(id, today.AddDays(-30), today.AddDays(180));
+
+        var model = new LivreReserveViewModel
+        {
+            Numinventaire = livre.Numinventaire,
+            Titre = livre.Titre ?? string.Empty,
+            StartDate = today,
+            EndDate = today,
+            CurrentReservationCount = currentCount,
+            MaxReservationCount = MaxReservations,
+            Reservations = reservations.Select(r => new ReservationItemViewModel
+            {
+                Id = r.Id,
+                Cin = r.Cin,
+                StartDate = r.Dateemprunt?.Date ?? today,
+                EndDate = r.Dateretour?.Date ?? today,
+                Status = GetReservationStatus(r, today)
+            }).ToList()
+        };
+
+        return View(model);
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Reserve(string id, LivreReserveViewModel model)
+    {
+        if (string.IsNullOrWhiteSpace(id) || !string.Equals(id, model.Numinventaire, StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest();
+        }
+
+        var livre = await _livreService.GetByIdAsync(id);
+        if (livre is null)
+        {
+            return NotFound();
+        }
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+        if (etudiant is null)
+        {
+            TempData["Error"] = "Reservation refusee. Votre profil etudiant doit etre valide par l'administration.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (model.StartDate.Date > model.EndDate.Date)
+        {
+            ModelState.AddModelError(string.Empty, "La date de fin doit etre superieure ou egale a la date de debut.");
+        }
+
+        var today = DateTime.UtcNow.Date;
+        if (model.StartDate.Date < today)
+        {
+            ModelState.AddModelError(nameof(model.StartDate), "La date de debut ne peut pas etre dans le passe.");
+        }
+
+        var currentCount = await _etudiantService.CountCurrentReservationsAsync(etudiant.Cin);
+        if (currentCount >= MaxReservations)
+        {
+            ModelState.AddModelError(string.Empty, $"Vous avez atteint la limite de {MaxReservations} reservations actives.");
+        }
+
+        var isAvailable = await _livreService.IsBookAvailableAsync(id, model.StartDate, model.EndDate);
+        if (!isAvailable)
+        {
+            ModelState.AddModelError(string.Empty, "Ce livre est deja reserve sur la periode selectionnee.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            model.Titre = livre.Titre ?? string.Empty;
+            model.CurrentReservationCount = currentCount;
+            model.MaxReservationCount = MaxReservations;
+            model.Reservations = (await _livreService.GetReservationsForBookAsync(id, today.AddDays(-30), today.AddDays(180)))
+                .Select(r => new ReservationItemViewModel
+                {
+                    Id = r.Id,
+                    Cin = r.Cin,
+                    StartDate = r.Dateemprunt?.Date ?? today,
+                    EndDate = r.Dateretour?.Date ?? today,
+                    Status = GetReservationStatus(r, today)
+                }).ToList();
+
+            return View(model);
+        }
+
+        await _livreService.CreateReservationAsync(etudiant.Cin, id, model.StartDate, model.EndDate);
+        TempData["Success"] = "Reservation creee avec succes.";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [Authorize(Roles = "User")]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CancelReservation(string id, decimal reservationId)
+    {
+        if (string.IsNullOrWhiteSpace(id))
+        {
+            return NotFound();
+        }
+
+        var currentUser = await _userManager.GetUserAsync(User);
+        var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+        if (etudiant is null)
+        {
+            TempData["Error"] = "Annulation refusee. Votre profil etudiant doit etre valide par l'administration.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        var reservation = await _livreService.GetReservationByIdAsync(reservationId);
+        if (reservation is null || !string.Equals(reservation.Numinv, id, StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound();
+        }
+
+        var cancelled = await _livreService.CancelReservationAsync(reservationId, etudiant.Cin);
+        if (!cancelled)
+        {
+            TempData["Error"] = "Annulation impossible. Vous ne pouvez pas annuler cette reservation.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        TempData["Success"] = "Reservation annulee avec succes.";
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     [Authorize(Roles = "Admin")]
@@ -154,5 +364,21 @@ public class LivresController : Controller
 
         TempData["Success"] = "Livre supprime avec succes.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private static ReservationStatus GetReservationStatus(Emprunt reservation, DateTime today)
+    {
+        if (reservation.Estretour.HasValue)
+        {
+            if (reservation.Dateemprunt.HasValue && reservation.Estretour.Value.Date < reservation.Dateemprunt.Value.Date)
+            {
+                return ReservationStatus.Cancelled;
+            }
+
+            return ReservationStatus.Returned;
+        }
+
+        var start = reservation.Dateemprunt?.Date ?? today;
+        return start <= today ? ReservationStatus.Active : ReservationStatus.Reserved;
     }
 }
