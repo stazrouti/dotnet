@@ -123,6 +123,21 @@ public class LivreService : ILivreService
 
     public async Task CreateReservationAsync(string cin, string numInventaire, DateTime startDate, DateTime endDate)
     {
+        var livre = await _context.Livres
+            .AsNoTracking()
+            .FirstOrDefaultAsync(l => l.Numinventaire == numInventaire);
+
+        if (livre is null)
+        {
+            throw new InvalidOperationException("Livre introuvable.");
+        }
+
+        var arrivalDate = livre.Datearrivage?.ToDateTime(TimeOnly.MinValue).Date;
+        if (arrivalDate.HasValue && startDate.Date < arrivalDate.Value)
+        {
+            throw new InvalidOperationException("La date de debut ne peut pas etre anterieure a la date d'arrivage du livre.");
+        }
+
         var reservation = new Emprunt
         {
             Cin = cin,

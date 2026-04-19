@@ -128,14 +128,21 @@ public class LivresController : Controller
         }
 
         var today = DateTime.UtcNow.Date;
+        var minReservationDate = livre.Datearrivage?.ToDateTime(TimeOnly.MinValue).Date ?? today;
+        if (minReservationDate < today)
+        {
+            minReservationDate = today;
+        }
+
         var reservations = await _livreService.GetReservationsForBookAsync(id, today.AddDays(-30), today.AddDays(180));
 
         var model = new LivreReserveViewModel
         {
             Numinventaire = livre.Numinventaire,
             Titre = livre.Titre ?? string.Empty,
-            StartDate = today,
-            EndDate = today,
+            BookDateArrivage = livre.Datearrivage,
+            StartDate = minReservationDate,
+            EndDate = minReservationDate,
             CurrentReservationCount = currentCount,
             MaxReservationCount = MaxReservations,
             Reservations = reservations.Select(r => new ReservationItemViewModel
@@ -186,6 +193,12 @@ public class LivresController : Controller
             ModelState.AddModelError(nameof(model.StartDate), "La date de debut ne peut pas etre dans le passe.");
         }
 
+        var arrivalDate = livre.Datearrivage?.ToDateTime(TimeOnly.MinValue).Date;
+        if (arrivalDate.HasValue && model.StartDate.Date < arrivalDate.Value)
+        {
+            ModelState.AddModelError(nameof(model.StartDate), "La date de debut ne peut pas etre anterieure a la date d'arrivage du livre.");
+        }
+
         var currentCount = await _etudiantService.CountCurrentReservationsAsync(etudiant.Cin);
         if (currentCount >= MaxReservations)
         {
@@ -201,6 +214,7 @@ public class LivresController : Controller
         if (!ModelState.IsValid)
         {
             model.Titre = livre.Titre ?? string.Empty;
+            model.BookDateArrivage = livre.Datearrivage;
             model.CurrentReservationCount = currentCount;
             model.MaxReservationCount = MaxReservations;
             model.Reservations = (await _livreService.GetReservationsForBookAsync(id, today.AddDays(-30), today.AddDays(180)))
@@ -216,7 +230,30 @@ public class LivresController : Controller
             return View(model);
         }
 
-        await _livreService.CreateReservationAsync(etudiant.Cin, id, model.StartDate, model.EndDate);
+        try
+        {
+            await _livreService.CreateReservationAsync(etudiant.Cin, id, model.StartDate, model.EndDate);
+        }
+        catch (InvalidOperationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            model.Titre = livre.Titre ?? string.Empty;
+            model.BookDateArrivage = livre.Datearrivage;
+            model.CurrentReservationCount = currentCount;
+            model.MaxReservationCount = MaxReservations;
+            model.Reservations = (await _livreService.GetReservationsForBookAsync(id, today.AddDays(-30), today.AddDays(180)))
+                .Select(r => new ReservationItemViewModel
+                {
+                    Id = r.Id,
+                    Cin = r.Cin,
+                    StartDate = r.Dateemprunt?.Date ?? today,
+                    EndDate = r.Dateretour?.Date ?? today,
+                    Status = GetReservationStatus(r, today)
+                }).ToList();
+
+            return View(model);
+        }
+
         TempData["Success"] = "Reservation creee avec succes.";
         return RedirectToAction(nameof(Details), new { id });
     }

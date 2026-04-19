@@ -32,6 +32,7 @@ public class LivreReserveViewModel
 {
     public string Numinventaire { get; set; } = string.Empty;
     public string Titre { get; set; } = string.Empty;
+    public DateOnly? BookDateArrivage { get; set; }
     public DateTime StartDate { get; set; } = DateTime.Today;
     public DateTime EndDate { get; set; } = DateTime.Today;
     public List<ReservationItemViewModel> Reservations { get; set; } = new();
