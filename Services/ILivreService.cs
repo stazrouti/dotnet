@@ -11,6 +11,7 @@ public interface ILivreService
     Task<bool> UpdateAsync(Livre livre);
     Task<bool> DeleteAsync(string numInventaire);
     Task<List<Emprunt>> GetReservationsForBookAsync(string numInventaire, DateTime fromDate, DateTime toDate);
+    Task<List<Emprunt>> GetReservationsForStudentAsync(string cin);
     Task<bool> IsBookAvailableAsync(string numInventaire, DateTime startDate, DateTime endDate);
     Task CreateReservationAsync(string cin, string numInventaire, DateTime startDate, DateTime endDate);
     Task<Emprunt?> GetReservationByIdAsync(decimal reservationId);

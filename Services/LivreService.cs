@@ -106,6 +106,17 @@ public class LivreService : ILivreService
             .ToListAsync();
     }
 
+    public async Task<List<Emprunt>> GetReservationsForStudentAsync(string cin)
+    {
+        return await _context.Emprunts
+            .Where(e => e.Cin == cin)
+            .Include(e => e.NuminvNavigation)
+            .OrderByDescending(e => e.Dateemprunt)
+            .ThenByDescending(e => e.CreatedAt)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
     public async Task<bool> IsBookAvailableAsync(string numInventaire, DateTime startDate, DateTime endDate)
     {
         var start = startDate.Date;

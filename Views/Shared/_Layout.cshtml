@@ -48,6 +48,7 @@
 <body>
     @{
         var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+        var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
     }
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
@@ -83,6 +84,16 @@
                             <div>Livres</div>
                         </a>
                     </li>
+
+                    @if (User.IsInRole("User"))
+                    {
+                        <li class="menu-item @(currentController == "Account" && currentAction == "Dashboard" ? "active" : string.Empty)">
+                            <a class="menu-link" asp-controller="Account" asp-action="Dashboard">
+                                <i class="menu-icon tf-icons bx bx-grid-alt"></i>
+                                <div>Mes reservations</div>
+                            </a>
+                        </li>
+                    }
 
                     @if (User.IsInRole("Admin"))
                     {

@@ -30,4 +30,6 @@ public partial class Livre
     public virtual ICollection<Emprunt> Emprunts { get; set; } = new List<Emprunt>();
 
     public virtual ICollection<Motcle> Motcles { get; set; } = new List<Motcle>();
+
+    public virtual ICollection<Avis> Avis { get; set; } = new List<Avis>();
 }

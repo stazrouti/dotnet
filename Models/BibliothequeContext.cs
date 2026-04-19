@@ -16,6 +16,8 @@ public partial class BibliothequeContext : IdentityDbContext<User>
     {
     }
 
+    public virtual DbSet<Avis> Avis { get; set; }
+
     public virtual DbSet<Emprunt> Emprunts { get; set; }
 
     public virtual DbSet<Etudiant> Etudiants { get; set; }
@@ -30,7 +32,52 @@ public partial class BibliothequeContext : IdentityDbContext<User>
     {
         base.OnModelCreating(modelBuilder); // 🔴 THIS LINE FIXES EVERYTHING
 
+        modelBuilder.Entity<Avis>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK_avis_id");
 
+            entity.ToTable("avis");
+
+            entity.HasIndex(e => e.Cin, "avis_cin_foreign");
+
+            entity.HasIndex(e => e.Numinv, "avis_numinv_foreign");
+
+            entity.HasIndex(e => new { e.Cin, e.Numinv }, "avis_cin_numinv_unique").IsUnique();
+
+            entity.Property(e => e.Id)
+                .ValueGeneratedOnAdd()
+                .HasColumnType("numeric(20, 0)")
+                .HasColumnName("id");
+            entity.Property(e => e.Cin)
+                .HasMaxLength(255)
+                .HasColumnName("cin");
+            entity.Property(e => e.Numinv)
+                .HasMaxLength(255)
+                .HasColumnName("numinv");
+            entity.Property(e => e.Note)
+                .HasColumnName("note");
+            entity.Property(e => e.Commentaire)
+                .HasMaxLength(500)
+                .HasDefaultValueSql("(NULL)")
+                .HasColumnName("commentaire");
+            entity.Property(e => e.CreatedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("created_at");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("(NULL)")
+                .HasColumnType("datetime")
+                .HasColumnName("updated_at");
+
+            entity.HasOne(d => d.Etudiant).WithMany(p => p.Avis)
+                .HasForeignKey(d => d.Cin)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("avis$avis_cin_foreign");
+
+            entity.HasOne(d => d.Livre).WithMany(p => p.Avis)
+                .HasForeignKey(d => d.Numinv)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("avis$avis_numinv_foreign");
+        });
 
         modelBuilder.Entity<Emprunt>(entity =>
         {

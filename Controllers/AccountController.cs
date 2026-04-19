@@ -1,4 +1,5 @@
 ﻿using Bibliotheque.Models;
+using Bibliotheque.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,14 +12,20 @@ namespace Bibliotheque.Controllers
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly IEtudiantService _etudiantService;
+        private readonly ILivreService _livreService;
 
         public AccountController(UserManager<User> userManager,
                                  SignInManager<User> signInManager,
-                                 RoleManager<IdentityRole> roleManager)
+                                 RoleManager<IdentityRole> roleManager,
+                                 IEtudiantService etudiantService,
+                                 ILivreService livreService)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
+            _etudiantService = etudiantService;
+            _livreService = livreService;
         }
 
         [HttpGet]
@@ -133,6 +140,109 @@ namespace Bibliotheque.Controllers
             return View(model);
         }
 
+        [Authorize(Roles = "User")]
+        [HttpGet]
+        public async Task<IActionResult> Dashboard()
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            var etudiant = await _etudiantService.GetVerifiedEtudiantForUserAsync(currentUser?.Email);
+
+            if (etudiant is null)
+            {
+                TempData["Error"] = "Tableau de bord indisponible. Votre profil etudiant doit etre valide par l'administration.";
+                return RedirectToAction(nameof(Profile));
+            }
+
+            var today = DateTime.UtcNow.Date;
+            var reservations = await _livreService.GetReservationsForStudentAsync(etudiant.Cin);
+            var rows = reservations.Select(r =>
+            {
+                var status = GetReservationStatus(r, today);
+
+                return new EtudiantReservationRowViewModel
+                {
+                    ReservationId = r.Id,
+                    Numinventaire = r.Numinv,
+                    Titre = r.NuminvNavigation?.Titre ?? string.Empty,
+                    Auteur = r.NuminvNavigation?.Auteur ?? string.Empty,
+                    StartDate = r.Dateemprunt?.Date ?? today,
+                    EndDate = r.Dateretour?.Date ?? today,
+                    Status = status,
+                    CanCancel = status == ReservationStatus.Active || status == ReservationStatus.Reserved
+                };
+            }).ToList();
+
+            var currentReservations = rows
+                .Where(r => r.Status == ReservationStatus.Active || r.Status == ReservationStatus.Reserved)
+                .OrderBy(r => r.StartDate)
+                .ToList();
+
+            var alerts = new List<EtudiantDashboardAlertViewModel>();
+
+            alerts.AddRange(currentReservations
+                .Where(r => r.EndDate.Date == today)
+                .Select(r => new EtudiantDashboardAlertViewModel
+                {
+                    Level = EtudiantDashboardAlertLevel.Danger,
+                    Message = "Retour prevu aujourd'hui.",
+                    Numinventaire = r.Numinventaire,
+                    Titre = r.Titre,
+                    Date = r.EndDate.Date
+                }));
+
+            alerts.AddRange(currentReservations
+                .Where(r => r.Status == ReservationStatus.Reserved && r.StartDate.Date == today.AddDays(1))
+                .Select(r => new EtudiantDashboardAlertViewModel
+                {
+                    Level = EtudiantDashboardAlertLevel.Info,
+                    Message = "Reservation qui commence demain.",
+                    Numinventaire = r.Numinventaire,
+                    Titre = r.Titre,
+                    Date = r.StartDate.Date
+                }));
+
+            alerts.AddRange(currentReservations
+                .Where(r => r.EndDate.Date > today && r.EndDate.Date <= today.AddDays(7))
+                .Select(r => new EtudiantDashboardAlertViewModel
+                {
+                    Level = EtudiantDashboardAlertLevel.Warning,
+                    Message = "Retour prevu cette semaine.",
+                    Numinventaire = r.Numinventaire,
+                    Titre = r.Titre,
+                    Date = r.EndDate.Date
+                }));
+
+            alerts = alerts
+                .OrderBy(a => a.Date)
+                .ThenByDescending(a => a.Level)
+                .ToList();
+
+            var model = new EtudiantReservationDashboardViewModel
+            {
+                Etudiant = etudiant,
+                CurrentReservations = currentReservations,
+                HistoryReservations = rows
+                    .Where(r => r.Status == ReservationStatus.Returned || r.Status == ReservationStatus.Cancelled)
+                    .OrderByDescending(r => r.StartDate)
+                    .ToList(),
+                TodayReservationsCount = currentReservations.Count(r => r.StartDate.Date <= today && r.EndDate.Date >= today),
+                DueTodayCount = currentReservations.Count(r => r.EndDate.Date == today),
+                DueThisWeekCount = currentReservations.Count(r => r.EndDate.Date > today && r.EndDate.Date <= today.AddDays(7)),
+                CurrentReservationCount = currentReservations.Count,
+                Alerts = alerts,
+                Stats = new EtudiantReservationStatsViewModel
+                {
+                    Total = rows.Count,
+                    Active = rows.Count(r => r.Status == ReservationStatus.Active),
+                    Upcoming = rows.Count(r => r.Status == ReservationStatus.Reserved),
+                    Returned = rows.Count(r => r.Status == ReservationStatus.Returned),
+                    Cancelled = rows.Count(r => r.Status == ReservationStatus.Cancelled)
+                }
+            };
+
+            return View(model);
+        }
+
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -234,6 +344,22 @@ namespace Bibliotheque.Controllers
 
             TempData["Success"] = "Votre compte est admin.";
             return RedirectToAction(nameof(Profile));
+        }
+
+        private static ReservationStatus GetReservationStatus(Emprunt reservation, DateTime today)
+        {
+            if (reservation.Estretour.HasValue)
+            {
+                if (reservation.Dateemprunt.HasValue && reservation.Estretour.Value.Date < reservation.Dateemprunt.Value.Date)
+                {
+                    return ReservationStatus.Cancelled;
+                }
+
+                return ReservationStatus.Returned;
+            }
+
+            var start = reservation.Dateemprunt?.Date ?? today;
+            return start <= today ? ReservationStatus.Active : ReservationStatus.Reserved;
         }
     }
 }
