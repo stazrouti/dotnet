@@ -1,0 +1,45 @@
+@model Livre
+
+@{
+    ViewData["Title"] = "Details livre";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bx bx-book-reader me-2"></i>@Model.Titre</h5>
+        <div>
+            @if (User.IsInRole("Admin"))
+            {
+                <a asp-action="Edit" asp-route-id="@Model.Numinventaire" class="btn btn-outline-primary btn-sm">Modifier</a>
+            }
+            <a asp-action="Index" class="btn btn-outline-secondary btn-sm">Retour</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">Inventaire</dt>
+            <dd class="col-sm-9">@Model.Numinventaire</dd>
+
+            <dt class="col-sm-3">ISBN</dt>
+            <dd class="col-sm-9">@Model.Isbn</dd>
+
+            <dt class="col-sm-3">Auteur</dt>
+            <dd class="col-sm-9">@Model.Auteur</dd>
+
+            <dt class="col-sm-3">Editeur</dt>
+            <dd class="col-sm-9">@Model.Editeur</dd>
+
+            <dt class="col-sm-3">Date publication</dt>
+            <dd class="col-sm-9">@Model.Datepublication</dd>
+
+            <dt class="col-sm-3">Date arrivage</dt>
+            <dd class="col-sm-9">@Model.Datearrivage</dd>
+
+            <dt class="col-sm-3">Cote</dt>
+            <dd class="col-sm-9">@Model.Cote</dd>
+
+            <dt class="col-sm-3">Resume</dt>
+            <dd class="col-sm-9">@Model.Résumé</dd>
+        </dl>
+    </div>
+</div>

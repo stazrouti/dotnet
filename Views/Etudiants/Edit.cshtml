@@ -1,0 +1,87 @@
+@model Etudiant
+
+@{
+    ViewData["Title"] = "Modifier l'etudiant";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="bx bx-edit me-2"></i>Modifier l'etudiant</h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Cin" class="form-label"></label>
+                    <input asp-for="Cin" class="form-control" readonly />
+                    <span asp-validation-for="Cin" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Matricule" class="form-label"></label>
+                    <input asp-for="Matricule" class="form-control" />
+                    <span asp-validation-for="Matricule" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Nom" class="form-label"></label>
+                    <input asp-for="Nom" class="form-control" />
+                    <span asp-validation-for="Nom" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Prenom" class="form-label"></label>
+                    <input asp-for="Prenom" class="form-control" />
+                    <span asp-validation-for="Prenom" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control" type="email" />
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Tel" class="form-label"></label>
+                    <input asp-for="Tel" class="form-control" type="tel" />
+                    <span asp-validation-for="Tel" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Niveau" class="form-label"></label>
+                    <input asp-for="Niveau" class="form-control" placeholder="Ex: 1ere annee, 2eme annee" />
+                    <span asp-validation-for="Niveau" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Filiere" class="form-label"></label>
+                    <input asp-for="Filiere" class="form-control" placeholder="Ex: Informatique" />
+                    <span asp-validation-for="Filiere" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Rfid" class="form-label"></label>
+                    <input asp-for="Rfid" class="form-control" placeholder="Numero RFID (optionnel)" />
+                    <span asp-validation-for="Rfid" class="text-danger"></span>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Qr" class="form-label"></label>
+                    <input asp-for="Qr" class="form-control" placeholder="Code QR (optionnel)" />
+                    <span asp-validation-for="Qr" class="text-danger"></span>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label asp-for="Commentaire" class="form-label"></label>
+                    <textarea asp-for="Commentaire" class="form-control" rows="2"></textarea>
+                    <span asp-validation-for="Commentaire" class="text-danger"></span>
+                </div>
+                <div class="col-md-12 mb-3">
+                    <label asp-for="Observation" class="form-label"></label>
+                    <textarea asp-for="Observation" class="form-control" rows="2"></textarea>
+                    <span asp-validation-for="Observation" class="text-danger"></span>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Enregistrer les modifications</button>
+            <a asp-action="Details" asp-route-id="@Model.Cin" class="btn btn-outline-secondary">Annuler</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

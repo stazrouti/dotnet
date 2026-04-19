@@ -1,0 +1,55 @@
+@model Etudiant
+
+@{
+    ViewData["Title"] = "Supprimer l'etudiant";
+}
+
+<div class="card border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="mb-0"><i class="bx bx-trash me-2"></i>Confirmer la suppression</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-warning" role="alert">
+            <i class="bx bx-exclamation-circle me-2"></i>
+            <strong>Attention!</strong> Cette action est irreversible.
+        </div>
+
+        <p>Etes-vous sur de vouloir supprimer cet etudiant?</p>
+
+        <div class="card bg-light mb-3">
+            <div class="card-body">
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <label class="fw-bold">CIN:</label>
+                        <p>@Model.Cin</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fw-bold">Matricule:</label>
+                        <p>@Model.Matricule</p>
+                    </div>
+                </div>
+
+                <div class="row mb-2">
+                    <div class="col-md-6">
+                        <label class="fw-bold">Nom:</label>
+                        <p>@Model.Nom @Model.Prenom</p>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="fw-bold">Email:</label>
+                        <p>@Model.Email</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-muted small">
+            <strong>Note:</strong> La suppression ne sera pas possible si l'etudiant a des emprunts ou des visites enregistres dans le systeme.
+        </p>
+
+        <form asp-action="DeleteConfirmed" asp-route-id="@Model.Cin" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-danger"><i class="bx bx-check me-1"></i>Supprimer</button>
+            <a asp-action="Details" asp-route-id="@Model.Cin" class="btn btn-outline-secondary"><i class="bx bx-x me-1"></i>Annuler</a>
+        </form>
+    </div>
+</div>
