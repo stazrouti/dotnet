@@ -1,58 +1,77 @@
 # Bibliotheque
 
-Bibliotheque is an ASP.NET Core MVC application built with .NET 10, Entity Framework Core, and ASP.NET Identity. It uses SQL Server as its database and is structured around a small library management domain.
+Bibliotheque is an ASP.NET Core MVC application built with .NET 10, Entity Framework Core, ASP.NET Identity, and SQL Server.
 
-## What the project does
+It manages books and students with role-based access (`Admin` and `User`) and includes reservation and review workflows.
 
-The application provides the foundation for managing:
+## Features implemented
 
-- Students (`Etudiant`)
-- Books (`Livre`)
-- Borrowing records (`Emprunt`)
-- Keywords or tags for books (`Motcle`)
-- Visits by students (`Visite`)
-- User authentication with ASP.NET Identity (`User`)
+### Authentication and users
 
-The current web app includes:
+- Register, login, logout
+- Password change and profile page
+- Automatic first-user promotion to `Admin`
+- Role-based authorization for admin/student features
 
-- A default home page and privacy page
-- Login, register, and logout actions in `AccountController`
-- Entity Framework Core models and migrations for the library database
+### Books (`Livres`)
 
-## How it works
+- List, details, create, edit, delete
+- Search by inventory number, title, author, or ISBN
+- Pagination on books list: **10 books per page**
 
-The app starts in `Program.cs`, where it:
+### Reservations (`Emprunts`)
 
-1. Registers `BibliothequeContext` with SQL Server.
-2. Configures ASP.NET Identity for local authentication.
-3. Enables MVC controllers, Razor views, and Razor Pages.
-4. Sets the default route to `Home/Index`.
+- Student reservation flow from book details
+- Reservation date range (`StartDate`, `EndDate`)
+- Arrival-date guard: reservation start must be on/after `Datearrivage`
+- Availability conflict checks (no overlap for active reservations)
+- Reservation quota per student (max 3 active/upcoming)
+- Reservation cancellation by the owning student
 
-The database model is defined in `Models/BibliothequeContext.cs` and the entity classes under `Models/`. Migrations in `Migrations/` describe how the schema is created and updated.
+### Student dashboard
 
-### Main data model
+- "Mes reservations" dashboard for verified students
+- Current reservations + history
+- Status aggregation (`Active`, `Reserved`, `Returned`, `Cancelled`)
+- Alerts and counters for due dates
+- Home dashboard summary cards (today, due today, due this week, quota)
 
-- `Livre` represents a book, identified by `Numinventaire`.
-- `Etudiant` represents a student, identified by `Cin`.
-- `Emprunt` links a student to a borrowed book.
-- `Motcle` links keywords to a book.
-- `Visite` stores student visit records.
-- `User` extends ASP.NET Identity for application users.
+### Reviews and ratings (`Avis`)
+
+- Reviews shown on book details page
+- Create review only for eligible students (verified + returned reservation history)
+- One review per student per book
+- Update/delete review by the review owner only
+- Average rating and total review count per book
+
+## Architecture
+
+### Application layers
+
+- `Controllers/`: MVC endpoints and authorization checks
+- `Services/`: business logic and database operations
+- `Models/`: EF entities and view models
+- `Views/`: Razor UI
+
+### Core entities
+
+- `Livre`: Book (primary key: `Numinventaire`)
+- `Etudiant`: Student (primary key: `Cin`)
+- `Emprunt`: Reservation/borrowing record
+- `Avis`: Book review/rating
+- `Motcle`: Keywords/tags for books
+- `Visite`: Visit records
+- `User`: ASP.NET Identity user extension
 
 ## Requirements
 
 - .NET 10 SDK
-- SQL Server installed locally or reachable from your machine
-- A database named `bibliotheque`, or a connection string that points to your database
-- Entity Framework CLI tool (`dotnet-ef`)
+- SQL Server
+- `dotnet-ef` tool
 
-The default connection string is defined in `appsettings.json`.
+## Setup and run
 
-## Run locally
-
-### Using the command line
-
-From the project folder:
+From project root:
 
 ```bash
 dotnet restore
@@ -61,45 +80,36 @@ dotnet ef database update
 dotnet run
 ```
 
-The app will usually be available at:
+Typical local URLs (from launch settings):
 
 - `https://localhost:7245`
 - `http://localhost:5047`
 
-These URLs come from `Properties/launchSettings.json`.
+## Database
 
-### Using Visual Studio
+Default connection string is in `appsettings.json`.
 
-1. Open `Bibliotheque.sln`.
-2. Make sure the SQL Server connection in `appsettings.json` is valid.
-3. Restore NuGet packages.
-4. Apply migrations if the database is not created yet.
-5. Run the project.
-
-## Database setup
-
-The app uses this default connection string:
+Example default value:
 
 `Data Source=.;Initial Catalog=bibliotheque;Integrated Security=True;Encrypt=True;Trust Server Certificate=True`
 
-If your SQL Server instance is different, update `ConnectionStrings:DefaultConnection` in `appsettings.json` before running the project.
-
-If the database does not exist yet, create it with Entity Framework migrations:
-
-```bash
-dotnet ef database update
-```
+If needed, update `ConnectionStrings:DefaultConnection` before running migrations.
 
 ## Project structure
 
-- `Controllers/` contains MVC controllers.
-- `Models/` contains the EF Core entities and view models.
-- `Views/` contains Razor views for the UI.
-- `Migrations/` contains database migration history.
-- `wwwroot/` contains static assets such as CSS, JavaScript, and images.
+- `Controllers/`
+- `Services/`
+- `Models/`
+- `Views/`
+- `Migrations/`
+- `wwwroot/`
 
 ## Notes
 
-- `bin/`, `obj/`, `.vs/`, and local database files are ignored by Git.
-- The project is set up for development on Windows with SQL Server.
-- If you change the schema, create a new migration and update the database.
+- This project currently uses standard MVC folders (no ASP.NET Areas yet).
+- If the schema changes, create and apply a migration:
+
+```bash
+dotnet ef migrations add <MigrationName>
+dotnet ef database update
+```
