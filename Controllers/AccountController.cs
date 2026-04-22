@@ -1,5 +1,9 @@
-﻿using Bibliotheque.Models;
-using Bibliotheque.Services;
+﻿using Bibliotheque.Areas.Admin.DTOs;
+using Bibliotheque.Areas.Admin.Services.Etudiant;
+using Bibliotheque.Areas.Etudiant.DTOs;
+using Bibliotheque.Areas.Etudiant.Services;
+using Bibliotheque.Models;
+using DocumentFormat.OpenXml.InkML;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -15,17 +19,21 @@ namespace Bibliotheque.Controllers
         private readonly IEtudiantService _etudiantService;
         private readonly ILivreService _livreService;
 
+        private readonly BibliothequeContext _context;
+
         public AccountController(UserManager<User> userManager,
                                  SignInManager<User> signInManager,
                                  RoleManager<IdentityRole> roleManager,
                                  IEtudiantService etudiantService,
-                                 ILivreService livreService)
+                                 ILivreService livreService,
+                                 BibliothequeContext context)
         {
             _userManager = userManager;
             _signInManager = signInManager;
             _roleManager = roleManager;
             _etudiantService = etudiantService;
             _livreService = livreService;
+            _context = context;
         }
 
         [HttpGet]
@@ -57,12 +65,15 @@ namespace Bibliotheque.Controllers
 
             if (result.Succeeded)
             {
-                if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
-                {
-                    return Redirect(returnUrl);
-                }
 
-                return RedirectToAction("Index", "Home");
+                if (User.IsInRole("Admin"))
+                {
+                    return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
+                }
+                else
+                {
+                    return RedirectToAction("Dashboard", "Account", new { area = "" });
+                }
             }
 
             ModelState.AddModelError(string.Empty, "Email ou mot de passe invalide.");
@@ -86,9 +97,12 @@ namespace Bibliotheque.Controllers
             var user = new User
             {
                 UserName = model.Email,
+                CIN = model.CIN,
+                Filiere = model.Filière,
+                Niveau = model.Niveau,
                 Email = model.Email,
                 NomComplet = model.NomComplet,
-                Role = "User"
+                Role = "Etudiant"
             };
 
             var result = await _userManager.CreateAsync(user, model.Password);
@@ -100,11 +114,13 @@ namespace Bibliotheque.Controllers
                     ModelState.AddModelError(string.Empty, error.Description);
                 }
 
-                return View(model);
+                
+
+                        return View(model);
             }
 
             var isFirstUser = await _userManager.Users.CountAsync() == 1;
-            var assignedRole = isFirstUser ? "Admin" : "User";
+            var assignedRole = isFirstUser ? "Admin" : "Etudiant";
 
             if (!await _roleManager.RoleExistsAsync(assignedRole))
             {
@@ -114,6 +130,27 @@ namespace Bibliotheque.Controllers
             await _userManager.AddToRoleAsync(user, assignedRole);
             user.Role = assignedRole;
             await _userManager.UpdateAsync(user);
+
+            if (user != null && !isFirstUser)
+            {
+                Bibliotheque.Models.Etudiant etud = await _context.Etudiants.Where(_ => _.Cin == user.CIN).FirstOrDefaultAsync();
+
+                if (etud == null)
+                {
+                    _context.Etudiants.Add(new Models.Etudiant
+                    {
+                        Cin = user.CIN,
+                        Nom = user.NomComplet,
+                        Email = user.Email,
+                        Filiere = user.Filiere,
+                        Niveau = user.Niveau,
+                        Matricule = user.CIN,
+                        Qr = user.CIN,
+                        Rfid = user.CIN
+                    });
+                    await _context.SaveChangesAsync();
+                }
+            }
 
             TempData["Success"] = "Compte cree avec succes. Connectez-vous pour continuer.";
             return RedirectToAction(nameof(Login));
@@ -140,7 +177,7 @@ namespace Bibliotheque.Controllers
             return View(model);
         }
 
-        [Authorize(Roles = "User")]
+        [Authorize(Roles = "Etudiant")]
         [HttpGet]
         public async Task<IActionResult> Dashboard()
         {

@@ -1,0 +1,159 @@
+﻿@using Bibliotheque.Areas.Admin.DTOs
+@model DashboardVM
+
+@{
+    ViewData["Title"] = "Tableau de bord";
+}
+
+<div class="container mt-4">
+
+    <h2 class="mb-4">📊 Tableau de bord</h2>
+
+    <div class="row">
+
+        <!-- Total -->
+        <div class="col-md-4">
+            <div class="card text-primary mb-3 shadow">
+                <div class="card-body text-center">
+                    <h5 class="card-title" style="color:inherit;">Total Emprunts</h5>
+                    <h2 style="color:inherit;">@Model.TotalEmprunts</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Retard -->
+        <div class="col-md-4">
+            <div class="card text-danger mb-3 shadow">
+                <div class="card-body text-center">
+                    <h5 class="card-title" style="color:inherit;">En retard</h5>
+                    <h2 style="color:inherit;">@Model.Retard</h2>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today -->
+        <div class="col-md-4">
+            <div class="card text-success mb-3 shadow">
+                <div class="card-body text-center">
+                    <h5 class="card-title" style="color:inherit;">Aujourd’hui</h5>
+                    <h2 style="color:inherit;">@Model.Today</h2>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card mt-4 shadow">
+                <div class="card-body">
+
+                    <div class="row">
+                        <div class="col">
+                            <h5 class="card-title">
+
+                                📈 Statistiques mensuelles
+
+                            </h5>
+                        </div>
+
+                        <div class="col-3">
+                            <a asp-action="Export" class="btn btn-outline-info">
+                                Exporter
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <canvas id="empruntChart" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+
+            <div class="card mt-4 shadow">
+                <div class="card-body">
+                    <h5 class="card-title">🕒 Derniers emprunts</h5>
+
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Étudiant</th>
+                                <th>Livre</th>
+                                <th>Date Emprunt</th>
+                                <th>Statut</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var item in Model.RecentEmprunts)
+                            {
+                                <tr>
+                                    <td>@item.CinNavigation.Nom</td>
+                                    <td>@item.NuminvNavigation.Titre</td>
+                                    <td>@item.Dateemprunt.Value.ToShortDateString()</td>
+
+                                    <td>
+                                        @if (item.Estretour != null)
+                                        {
+                                            <span class="badge bg-success">Retourné</span>
+                                        }
+                                        else if (item.Estretour != null && item.Estretour < DateTime.Now)
+                                        {
+                                            <span class="badge bg-danger">En retard</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">En cours</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Months));
+        const data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlyCounts));
+
+        const ctx = document.getElementById('empruntChart').getContext('2d');
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Nombre d\'emprunts',
+                    data: data,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    </script>
+
+
+
+
+</div>

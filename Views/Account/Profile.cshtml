@@ -1,4 +1,12 @@
+@using Bibliotheque.Areas.Etudiant.DTOs
 @model ProfileViewModel
+
+@{
+    if (User.IsInRole("Etudiant"))
+        Layout = "~/Areas/Etudiant/Views/Shared/_Layout.cshtml";
+    else
+        Layout = "~/Areas/Admin/Views/Shared/_Layout.cshtml";
+}
 
 @{
     ViewData["Title"] = "Mon profil";

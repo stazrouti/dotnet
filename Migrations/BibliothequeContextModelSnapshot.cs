@@ -85,6 +85,9 @@ namespace Bibliotheque.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<decimal>("Id"));
 
+                    b.Property<bool>("CanCancel")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Cin")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -178,10 +181,10 @@ namespace Bibliotheque.Migrations
                         .HasColumnName("matricule")
                         .HasDefaultValueSql("(NULL)");
 
-                    b.Property<string>("Niveau")
+                    b.Property<int?>("Niveau")
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
+                        .HasColumnType("int")
                         .HasDefaultValueSql("(NULL)");
 
                     b.Property<string>("Nom")
@@ -382,6 +385,10 @@ namespace Bibliotheque.Migrations
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
 
+                    b.Property<string>("CIN")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
@@ -393,11 +400,18 @@ namespace Bibliotheque.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Filiere")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("bit");
 
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Niveau")
+                        .HasColumnType("int");
 
                     b.Property<string>("NomComplet")
                         .IsRequired()

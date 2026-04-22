@@ -5,7 +5,7 @@ namespace Bibliotheque.Models;
 
 public partial class Emprunt
 {
-    public decimal Id { get; set; }
+    public int Id { get; set; }
 
     public string Cin { get; set; } = null!;
 
@@ -17,9 +17,17 @@ public partial class Emprunt
 
     public DateTime? Estretour { get; set; }
 
+    public bool CanCancel { get; set; } = true;
+
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+
+
+    public bool IsLate =>
+        Estretour != null &&
+        Estretour < DateTime.Now;
 
     public virtual Etudiant CinNavigation { get; set; } = null!;
 

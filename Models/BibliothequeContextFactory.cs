@@ -9,9 +9,11 @@ namespace Bibliotheque.Models
         {
             var optionsBuilder = new DbContextOptionsBuilder<BibliothequeContext>();
 
+            var builder = WebApplication.CreateBuilder(args);
+
             // optionsBuilder.UseSqlServer("Data Source=.\\SQLExpress;Initial Catalog=bibliotheque;Integrated Security=True;Encrypt=True;Trust Server Certificate=True");
 
-            optionsBuilder.UseSqlServer("Data Source=.;Initial Catalog=bibliotheque;Integrated Security=True;Encrypt=True;Trust Server Certificate=True");
+            optionsBuilder.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 
             return new BibliothequeContext(optionsBuilder.Options);
         }

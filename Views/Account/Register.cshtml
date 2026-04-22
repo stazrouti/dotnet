@@ -45,6 +45,31 @@
                             </div>
 
                             <div class="mb-3">
+                                <label asp-for="CIN" class="form-label"></label>
+                                <input asp-for="CIN" class="form-control" placeholder="CIN" />
+                                <span asp-validation-for="CIN" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Niveau" class="form-label"></label>
+
+                                <select asp-for="Niveau" class="form-select">
+                                    <option value="">-- Choisir un niveau --</option>
+                                    <option value="1">1 ère année</option>
+                                    <option value="2">2 ème année</option>
+                                    <option value="3">3 ème année</option>
+                                </select>
+
+                                <span asp-validation-for="Niveau" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Filière" class="form-label"></label>
+                                <input asp-for="Filière" class="form-control" placeholder="Filière" />
+                                <span asp-validation-for="Filière" class="text-danger"></span>
+                            </div>
+
+                            <div class="mb-3">
                                 <label asp-for="Email" class="form-label"></label>
                                 <input asp-for="Email" class="form-control" type="email" placeholder="Email" />
                                 <span asp-validation-for="Email" class="text-danger"></span>

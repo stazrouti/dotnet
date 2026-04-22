@@ -1,4 +1,5 @@
-﻿@model LoginViewModel
+﻿@using Bibliotheque.Models
+@model LoginViewModel
 
 @{
     Layout = null;
@@ -65,10 +66,7 @@
                         <!-- Logo -->
                         <div class="app-brand justify-content-center">
                             <a href="index.html" class="app-brand-link gap-2">
-                                <span class="app-brand-logo demo">
-                                    
-                                </span>
-                                <span class="app-brand-text demo text-body fw-bolder">SupMTI</span>
+                                <img src="~/assets/img/icons/brands/LOGO-R.png" width="270" height="100" />
                             </a>
                         </div>
                         <!-- /Logo -->
@@ -86,6 +84,7 @@
                             <div class="mb-3">
                                 <label asp-for="Email" class="form-label">Email</label>
                                 <input asp-for="Email"
+                                name="Email"
                                        type="email"
                                        class="form-control"
                                        placeholder="Email"
@@ -98,6 +97,7 @@
                                 </div>
                                 <div class="input-group input-group-merge">
                                     <input asp-for="Password"
+                                    name="Password"
                                            type="password"
                                            class="form-control"
                                            placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"

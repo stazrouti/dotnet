@@ -6,7 +6,13 @@ namespace Bibliotheque.Models;
 
 public partial class User : IdentityUser
 {
-     public string NomComplet  { get; set; } = string.Empty;
+     public string NomComplet  { get; set; } = null;
 
-     public string Role { get; set; } = string.Empty;
+    public string Role { get; set; } = null;
+
+    public string CIN { get; set; } = null;
+
+    public int Niveau { get; set; }
+
+    public string Filiere { get; set; } = null;
 }

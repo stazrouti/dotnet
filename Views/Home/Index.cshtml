@@ -1,54 +1,60 @@
-﻿@model HomeDashboardViewModel
+﻿<style>
 
-@{
-    ViewData["Title"] = "Tableau de bord";
-}
 
-<div class="text-center">
-    <h1 class="display-4">Tableau de bord</h1>
-</div>
+    .feature-icon {
+        font-size: 40px;
+        color: #0d6efd;
+    }
+</style>
 
-@if (Model.ShowEtudiantSummary)
+<section class="hero text-center">
+    <div class="container">
+        <h1 class="display-4 fw-bold">Bienvenue dans votre Bibliothèque Électronique</h1>
+        <p class="lead mt-3"> Accédez à des milliers de livres numériques, gérez vos lectures et découvrez de nouveaux auteurs. </p>
+        @if (User.Identity?.IsAuthenticated == false)
+        {
+            <a asp-area="" asp-controller="Account" asp-action="Register" class="btn btn-light btn-lg mt-4"> Commencer maintenant </a>
+        }
+        else
+        if (User.IsInRole("Admin"))
+        {
+            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="btn btn-light btn-lg mt-4"> Commencer maintenant </a>
+        }
+        else
+        {
+            <a asp-area="" asp-controller="Account" asp-action="Dashboard" class="btn btn-light btn-lg mt-4"> Commencer maintenant </a>
+        }
+    </div>
+</section>
+<section class="py-5">
+    <div class="container text-center">
+        <h2 class="mb-5">Fonctionnalités</h2>
+        <div class="row">
+            <div class="col-md-4">
+                <div class="feature-icon mb-3">📖</div>
+                <h4>Reserver en ligne</h4>
+                <p>Reservez en ligne un livre sans se déplacer à la bibliothèque</p>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-icon mb-3">🔍</div>
+                <h4>Recherche avancée</h4>
+                <p>Trouvez facilement vos livres préférés par titre, auteur ou isbn.</p>
+            </div>
+            <div class="col-md-4">
+                <div class="feature-icon mb-3">📊</div>
+                <h4>Statistiques</h4>
+                <p>Voir des statistiques sur mes reservation.</p>
+            </div>
+        </div>
+    </div>
+</section>
+@if (User.Identity?.IsAuthenticated == false)
 {
-    <div class="mt-3 text-end">
-        <a asp-controller="Account" asp-action="Dashboard" class="btn btn-sm btn-outline-primary">
-            Voir mes reservations
-        </a>
-    </div>
-    <div class="row g-3 mt-1">
-        <div class="col-md-3 col-6">
-            <div class="card border-primary h-100">
-                <div class="card-body">
-                    <div class="small text-muted">Mes reservations aujourd'hui</div>
-                    <div class="fs-4 fw-bold text-primary">@Model.TodayReservationsCount</div>
-                </div>
-            </div>
+    <section class="bg-light py-5 text-center">
+        <div class="container">
+            <h3>Prêt à explorer ?</h3>
+            <p class="mb-4">Rejoignez notre communauté de lecteurs dès aujourd'hui.</p>
+            <a asp-area="" asp-controller="Account" asp-action="Register" class="btn btn-primary btn-lg"> Créer un compte </a>
         </div>
-        <div class="col-md-3 col-6">
-            <div class="card border-danger h-100">
-                <div class="card-body">
-                    <div class="small text-muted">A rendre aujourd'hui</div>
-                    <div class="fs-4 fw-bold text-danger">@Model.DueTodayCount</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card border-warning h-100">
-                <div class="card-body">
-                    <div class="small text-muted">A rendre cette semaine</div>
-                    <div class="fs-4 fw-bold text-warning">@Model.DueThisWeekCount</div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="card border-info h-100">
-                <div class="card-body">
-                    <div class="small text-muted">Quota disponible</div>
-                    <div class="fs-4 fw-bold text-info">@Model.RemainingQuota / @Model.MaxReservationCount</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
+    </section>
 }

@@ -15,7 +15,7 @@ public partial class Etudiant
 
     public string? Email { get; set; }
 
-    public string? Niveau { get; set; }
+    public int? Niveau { get; set; }
 
     public string? Filiere { get; set; }
 

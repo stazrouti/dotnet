@@ -1,5 +1,9 @@
+using Bibliotheque.Areas.Admin.Services.Admin;
+using Bibliotheque.Areas.Admin.Services.Dashboard;
+using Bibliotheque.Areas.Admin.Services.Etudiant;
+using Bibliotheque.Areas.Admin.Services.Reservation;
+using Bibliotheque.Areas.Etudiant.Services;
 using Bibliotheque.Models;
-using Bibliotheque.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,6 +36,9 @@ builder.Services.Configure<IdentityOptions>(options =>
 
 builder.Services.AddScoped<ILivreService, LivreService>();
 builder.Services.AddScoped<IEtudiantService, EtudiantService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 builder.Services.AddRazorPages();
 
@@ -50,7 +57,7 @@ if (!app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var roles = new[] { "Admin", "User" };
+    var roles = new[] { "Admin", "Etudiant" };
 
     foreach (var role in roles)
     {
@@ -72,6 +79,10 @@ app.MapStaticAssets();
 
 app.UseStaticFiles();
 
+
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
 
 app.MapControllerRoute(
     name: "default",
