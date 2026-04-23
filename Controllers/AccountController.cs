@@ -205,7 +205,7 @@ namespace Bibliotheque.Controllers
                     StartDate = r.Dateemprunt?.Date ?? today,
                     EndDate = r.Dateretour?.Date ?? today,
                     Status = status,
-                    CanCancel = status == ReservationStatus.Active || status == ReservationStatus.Reserved
+                    CanCancel = r.CanCancel
                 };
             }).ToList();
 
